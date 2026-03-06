@@ -60,7 +60,7 @@ void loop(){
       
       	//Buscar o caractere no alfabeto
       	for (int j = 0; j < 37; j++) {
-        	if (caractereAtual == alfabeto[j]) {
+        	if (caracterAtual == alfabeto[j]) {
           		executarMorse(morse[j]);
           		break;
         	}
@@ -74,7 +74,7 @@ void loop(){
 //Função Auxiliar para processar os pontos e traços
 void executarMorse(const char* padrao) {
   for (int i = 0; padrao[i] != '\0'; i++ ) {
-    char símbolo = padrao[i];
+    char simbolo = padrao[i];
     Serial.print(simbolo);
     
     if (simbolo == '.') {
@@ -86,7 +86,7 @@ void executarMorse(const char* padrao) {
     }
     delay(pausaEntreSimbolos);
   }
-  delay.print(" ");
+  Serial.print(" ");
 }
 
 void emitirSinal(int duracao, int pinoIndicador) {
