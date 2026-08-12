@@ -1,0 +1,118 @@
+#include <AFMotor.h>
+
+// M1 = Motor Esquerdo | M4 = Motor Direito
+AF_DCMotor motorEsq(1); 
+AF_DCMotor motorDir(4); 
+
+int velocidadePadrao = 200; // Velocidade base (0 a 255)
+
+// --- PROTÓTIPOS DAS FUNÇÕES ---
+void frente();
+void re();
+void parada();
+void giroHorario();
+void giroAntiHorario();
+void giroEixoHorario();
+void giroEixoAntiHorario();
+void definirVelocidade(int vel);
+
+void setup() {
+  Serial.begin(9600);
+  
+  // Define a velocidade inicial dos dois motores
+  definirVelocidade(velocidadePadrao);
+  
+  // Inicia com os motores parados
+  parada();
+
+  Serial.println("Robo pronto! Executando rotina de teste...");
+}
+
+void loop() {
+  // Exemplo de rotina de teste chamando cada função:
+  
+  Serial.println("1. Frente");
+  frente();
+  delay(2000);
+
+  Serial.println("2. Ré");
+  re();
+  delay(2000);
+
+  Serial.println("3. Giro Horário (Pivotado)");
+  giroHorario();
+  delay(1500);
+
+  Serial.println("4. Giro Anti-Horário (Pivotado)");
+  giroAntiHorario();
+  delay(1500);
+
+  Serial.println("5. Giro SOBRE O EIXO Horário (360°)");
+  giroEixoHorario();
+  delay(1500);
+
+  Serial.println("6. Giro SOBRE O EIXO Anti-Horário (360°)");
+  giroEixoAntiHorario();
+  delay(1500);
+
+  Serial.println("7. Parada");
+  parada();
+  
+  // Aguarda 5 segundos antes de repetir o ciclo
+  delay(5000); 
+}
+
+// =======================================================
+//                FUNÇÕES DE MOVIMENTAÇÃO
+// =======================================================
+
+// Ajusta a velocidade de ambos os motores simultaneamente (0 a 255)
+void definirVelocidade(int vel) {
+  velocidadePadrao = constrain(vel, 0, 255);
+  motorEsq.setSpeed(velocidadePadrao);
+  motorDir.setSpeed(velocidadePadrao);
+}
+
+// Move o robô para FRENTE
+void frente() {
+  motorEsq.run(FORWARD);
+  motorDir.run(FORWARD);
+}
+
+// Move o robô para TRÁS (RÉ)
+void re() {
+  motorEsq.run(BACKWARD);
+  motorDir.run(BACKWARD);
+}
+
+// DESLIGA os dois motores
+void parada() {
+  motorEsq.run(RELEASE);
+  motorDir.run(RELEASE);
+}
+
+// GIRO HORÁRIO (Pivotado - Roda esquerda avança, direita para)
+void giroHorario() {
+  motorEsq.run(FORWARD);
+  motorDir.run(RELEASE);
+}
+
+// GIRO ANTI-HORÁRIO (Pivotado - Roda direita avança, esquerda para)
+void giroAntiHorario() {
+  motorEsq.run(RELEASE);
+  motorDir.run(FORWARD);
+}
+
+// GIRO SOBRE O EIXO CENTRAL - HORÁRIO
+// (Esquerda vai pra FRENTE, Direita vai pra TRÁS)
+void giroEixoHorario() {
+  motorEsq.run(FORWARD);
+  motorDir.run(BACKWARD);
+}
+
+// GIRO SOBRE O EIXO CENTRAL - ANTI-HORÁRIO
+// (Esquerda vai pra TRÁS, Direita vai pra FRENTE)
+void giroEixoAntiHorario() {
+  motorEsq.run(BACKWARD);
+  motorDir.run(FORWARD);
+}
