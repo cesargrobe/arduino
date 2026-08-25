@@ -1,0 +1,52 @@
+// Definição dos pinos
+const int pinoBotao1 = 2;
+const int pinoLED1 = 12;
+
+const int pinoBotao2 = 3;
+const int pinoLED2 = 13;
+
+// Variáveis de estado - Conjunto 1
+bool estadoLED1 = false;
+int estadoBotaoAnterior1 = HIGH;
+
+// Variáveis de estado - Conjunto 2
+bool estadoLED2 = false;
+int estadoBotaoAnterior2 = HIGH;
+
+void setup() {
+  // Configuração do Conjunto 1
+  pinMode(pinoBotao1, INPUT_PULLUP);
+  pinMode(pinoLED1, OUTPUT);
+  digitalWrite(pinoLED1, estadoLED1); // Inicia desligado
+
+  // Configuração do Conjunto 2
+  pinMode(pinoBotao2, INPUT_PULLUP);
+  pinMode(pinoLED2, OUTPUT);
+  digitalWrite(pinoLED2, estadoLED2); // Inicia desligado
+}
+
+void loop() {
+  // ------------------------------------
+  // CONTROLE DO BOTÃO 1 E LED 1
+  // ------------------------------------
+  int estadoBotaoAtual1 = digitalRead(pinoBotao1);
+
+  if (estadoBotaoAnterior1 == HIGH && estadoBotaoAtual1 == LOW) {
+    estadoLED1 = !estadoLED1;
+    digitalWrite(pinoLED1, estadoLED1);
+    delay(50); // Debounce
+  }
+  estadoBotaoAnterior1 = estadoBotaoAtual1;
+
+  // ------------------------------------
+  // CONTROLE DO BOTÃO 2 E LED 2
+  // ------------------------------------
+  int estadoBotaoAtual2 = digitalRead(pinoBotao2);
+
+  if (estadoBotaoAnterior2 == HIGH && estadoBotaoAtual2 == LOW) {
+    estadoLED2 = !estadoLED2;
+    digitalWrite(pinoLED2, estadoLED2);
+    delay(50); // Debounce
+  }
+  estadoBotaoAnterior2 = estadoBotaoAtual2;
+}
