@@ -1,32 +1,32 @@
 /*
-  Colégio Estadual Gabriel de Lara - 17/09/2026
-  Autor: Gerson Cesar Grobe de Miranda, 00
+    Colégio Estadual Gabriel de Lara - 17/09/2026
+    Autor: Gerson Cesar Grobe de Miranda, 00
 
-  Objetivo: Controlar uma fita de LEDs com
-  controle remoto infravermelho para ligar e desligar a fita,
-  selecionar cores e ajustar a velocidade dos efeitos luminosos.
+    Objetivo: Controlar fita de LEDs endereçáveis com controle remoto IR
+    utilizando a biblioteca IRremote v3+ e protocolo NEC mapeado.
 */
 
 #include <Adafruit_NeoPixel.h>
-#include <IRremote.h>
+#include <IRremote.hpp>
 
 #define PIN 2
 #define PIN_IR 3
-#define numeroPixels 10      // alterar a quantidade = 300
+#define numeroPixels 50 // Se alterar para 300, lembre-se da fonte externa de 5V!
 
-Adafruit_NeoPixel pixels(
-  numeroPixels, PIN, NEO_RGB + NEO_KHZ800
-);
+// Inicialização dos NeoPixels (padrão NEO_GRB para fitas WS2812B)
+Adafruit_NeoPixel pixels(numeroPixels, PIN, NEO_GRB + NEO_KHZ800);
 
-// Valores retornados pelo mapeamento do controle.
-// Representam a posição do botão, não seu rótulo.
-const int BT_POWER = 0;
-const int BT_MAIS  = 1;
-const int BT_MENOS = 9;
-const int BT_0     = 12;
-const int BT_1     = 16;
-const int BT_2     = 17;
-const int BT_3     = 18;
+// Mapeamento dos botões (baseado na sua leitura)
+const uint8_t BT_POWER = 0x1C; // Centro
+const uint8_t BT_0     = 0x19; // Botão 0 (Ativa o Efeito Automático)
+const uint8_t BT_1     = 0x45; // Botão 1
+const uint8_t BT_2     = 0x46; // Botão 2
+const uint8_t BT_3     = 0x47; // Botão 3
+const uint8_t BT_4     = 0x44; // Botão 4
+const uint8_t BT_5     = 0x40; // Botão 5
+const uint8_t BT_6     = 0x43; // Botão 6
+const uint8_t BT_MAIS  = 0x18; // Norte (Aumenta velocidade)
+const uint8_t BT_MENOS = 0x52; // Sul (Diminui velocidade)
 
 int tempo = 180;
 
@@ -42,45 +42,35 @@ int direcao = 1;
 
 unsigned long ultimaAtualizacao = 0;
 
-// Converte o código recebido para a posição do botão.
-int mapCodeToButton(unsigned long code) {
-  if ((code & 0x0000FFFF) == 0x0000BF00) {
-    code >>= 16;
-    if (((code >> 8) ^ (code & 0x00FF)) == 0x00FF) {
-      return code & 0xFF;
-    }
-  }
-  return -1;
-}
-
-// Retorna -1 quando não há um botão válido.
+// Leitura do controle infravermelho
 int readInfrared() {
-  int result = -1;
-
   if (IrReceiver.decode()) {
-    // Ignora repetições ao manter um botão pressionado.
-    if (!(IrReceiver.decodedIRData.flags
-          & IRDATA_FLAGS_IS_REPEAT)) {
-      unsigned long code =
-        IrReceiver.decodedIRData.decodedRawData;
-
-      result = mapCodeToButton(code);
+    // Filtra apenas comandos NEC e ignora repetição ao manter pressionado
+    if (IrReceiver.decodedIRData.protocol == NEC && 
+       !(IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT)) {
+      
+      uint8_t command = IrReceiver.decodedIRData.command;
+      
+      Serial.print("Comando Recebido: 0x");
+      if (command < 0x10) Serial.print("0");
+      Serial.println(command, HEX);
+      
+      IrReceiver.resume();
+      return command;
     }
-
     IrReceiver.resume();
   }
-
-  return result;
+  return -1;
 }
 
 void setup() {
   Serial.begin(9600);
 
   pixels.begin();
-  pixels.show();
+  pixels.show(); // Desliga todos os LEDs na inicialização
 
-  // Pino 3 para o receptor; pino 2 fica com a fita.
-  IrReceiver.begin(PIN_IR);
+  pinMode(PIN_IR, INPUT_PULLUP);
+  IrReceiver.begin(PIN_IR, ENABLE_LED_FEEDBACK);
 
   setColor();
 }
@@ -89,12 +79,10 @@ void loop() {
   int button = readInfrared();
 
   if (button >= 0) {
-    Serial.print("Botao: ");
-    Serial.println(button);
-
     tratarComando(button);
   }
 
+  // Executa o efeito de ida e volta sem travar o código com delay()
   if (ligada && automatico) {
     unsigned long agora = millis();
 
@@ -109,13 +97,13 @@ void loop() {
 
       posicao += direcao;
 
-      // Final da fita: muda a cor e começa a voltar.
+      // Final da fita: troca a cor e retorna
       if (posicao >= numeroPixels) {
         posicao = numeroPixels - 1;
         direcao = -1;
         setColor();
       }
-      // Início da fita: muda a cor e avança novamente.
+      // Início da fita: troca a cor e avança
       else if (posicao < 0) {
         posicao = 0;
         direcao = 1;
@@ -131,7 +119,7 @@ void tratarComando(int button) {
       ligada = !ligada;
 
       if (!ligada) {
-        preencherFita(0, 0, 0);
+        preencherFita(0, 0, 0); // Desliga a fita
       } else if (automatico) {
         reiniciarEfeito();
       } else {
@@ -146,34 +134,47 @@ void tratarComando(int button) {
       break;
 
     case BT_1:
-      corFixa(255, 0, 0);
+      corFixa(255, 0, 0); // Vermelho
       break;
 
     case BT_2:
-      corFixa(0, 255, 0);
+      corFixa(0, 255, 0); // Verde
       break;
 
     case BT_3:
-      corFixa(0, 0, 255);
+      corFixa(0, 0, 255); // Azul
+      break;
+
+    case BT_4:
+      corFixa(255, 255, 0); // Amarelo
+      break;
+
+    case BT_5:
+      corFixa(255, 0, 255); // Roxo / Magenta
+      break;
+
+    case BT_6:
+      corFixa(0, 255, 255); // Ciano
       break;
 
     case BT_MAIS:
-      tempo = max(30, tempo - 30);
+      tempo = max(20, tempo - 30); // Aumenta a velocidade do efeito
+      Serial.print("Velocidade (tempo ms): ");
+      Serial.println(tempo);
       break;
 
     case BT_MENOS:
-      tempo = min(1000, tempo + 30);
+      tempo = min(1000, tempo + 30); // Diminui a velocidade do efeito
+      Serial.print("Velocidade (tempo ms): ");
+      Serial.println(tempo);
       break;
   }
 }
 
 void preencherFita(int vermelho, int verde, int azul) {
   for (int i = 0; i < numeroPixels; i++) {
-    pixels.setPixelColor(
-      i, pixels.Color(vermelho, verde, azul)
-    );
+    pixels.setPixelColor(i, pixels.Color(vermelho, verde, azul));
   }
-
   pixels.show();
 }
 
